@@ -43,6 +43,8 @@
   },
   "utils": {
     "caption": "Utilities",
+    "aldb_loading_short": "Waiting on ALDB Loading",
+    "aldb_loading_long": "One or more All-Link Databases are loading. Results cannot be displayed until that process is complete.",
     "config_modem": {
       "caption": "Change the modem connection",
       "success": "Success",
@@ -80,6 +82,40 @@
       "actions": {
         "confirm_delete": "Are you sure you want to delete the device override for ",
         "delete": "Delete device override"
+      }
+    },
+    "broken_links": {
+      "caption": "Broken Links",
+      "fields": {
+        "device": "Device with Link",
+        "target": "Device missing link",
+        "group": "Group",
+        "status": "Status",
+        "recommendation": "Recommendation"
+      },
+      "actions": {
+        "target_db_not_loaded": "Load All-Link Database",
+        "missing_responder": "Delete exiting record",
+        "missing_controller": "Create missing record"
+      },
+      "status": {
+        "target_db_not_loaded": "All-Link Database not loaded",
+        "missing_responder": "Missing responder record",
+        "missing_controller": "Missing controller record"
+      },
+      "load_aldb": "The All-Link Database for device ",
+      "load_aldb_1": " will load in the background. If this is a battery operated device, you will need to trigger the device to wake up before the ALDB will load.",
+      "remove_record": "The record will be removed from device "
+    },
+    "unknown_devices": {
+      "caption": "Unknown Devices",
+      "fields": {
+        "address": "Device Address"
+      },
+      "actions": {
+        "delete": "Delete",
+        "discover": "Discover",
+        "override": "Create override"
       }
     }
   },
@@ -183,7 +219,8 @@
       "create": "Create ALDB Record",
       "show": "Show Unused",
       "hide": "Hide Unused",
-      "add_default_links": "Add Default Links"
+      "add_default_links": "Add Default Links",
+      "download": "Download"
     },
     "fields": {
       "id": "Record ID",

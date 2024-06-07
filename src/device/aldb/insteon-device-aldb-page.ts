@@ -3,6 +3,7 @@ import type { ActionDetail } from "@material/mwc-list";
 // import "@material/mwc-fab";
 import { mdiPlus, mdiDotsVertical } from "@mdi/js";
 // import "@material/mwc-button";
+import memoizeOne from "memoize-one";
 import "@ha/components/ha-icon-button";
 import "@ha/components/ha-circular-progress";
 import {
@@ -47,8 +48,22 @@ import {
 import { showInsteonALDBRecordDialog } from "./show-dialog-insteon-aldb-record";
 import { navigate } from "@ha/common/navigate";
 import "@ha/components/ha-button-menu";
+import { fileDownload } from "@ha/util/file_download";
+
 
 import { haStyle } from "@ha/resources/styles";
+
+export interface ExportableRecord {
+  mem_addr: number;
+  in_use: boolean;
+  is_controller: boolean;
+  is_highwater: boolean,
+  group: number;
+  target: string;
+  data1: number,
+  data2: number;
+  data3: number;
+}
 
 @customElement("insteon-device-aldb-page")
 class InsteonDeviceALDBPage extends LitElement {
@@ -221,6 +236,9 @@ class InsteonDeviceALDBPage extends LitElement {
         <mwc-list-item .disabled=${!this._dirty()}>
           ${this.insteon!.localize("common.actions.reset")}
         </mwc-list-item>
+        <mwc-list-item>
+          ${this.insteon.localize("aldb.actions.download")}
+        </mwc-list-item>
 
         <mwc-list-item
           aria-label=${this.insteon.localize("device.actions.delete")}
@@ -271,6 +289,7 @@ class InsteonDeviceALDBPage extends LitElement {
       schema: aldbNewRecordSchema(this.insteon),
       record: record,
       title: this.insteon.localize("aldb.actions.new"),
+      require_change: true,
       callback: async (rec) => this._handleRecordCreate(rec),
     });
   }
@@ -411,6 +430,7 @@ class InsteonDeviceALDBPage extends LitElement {
       schema: aldbChangeRecordSchema(this.insteon),
       record: record!,
       title: this.insteon.localize("aldb.actions.change"),
+      require_change: true,
       callback: async (rec) => this._handleRecordChange(rec),
     });
     history.back();
@@ -444,9 +464,12 @@ class InsteonDeviceALDBPage extends LitElement {
         await this._onResetALDBClick();
         break;
       case 4:
-        await this._onDeleteDevice();
+        await this._download();
         break;
       case 5:
+        await this._onDeleteDevice();
+        break;
+      case 6:
         await this._onShowHideUnusedClicked();
         break;
     }
@@ -507,6 +530,34 @@ class InsteonDeviceALDBPage extends LitElement {
     this._goBack();
   }
 
+  private _download() {
+    const filename = this._device?.address + " ALDB.json"
+    fileDownload(
+      `data:text/plain;charset=utf-8,${encodeURIComponent(
+        JSON.stringify({ aldb: this._exportable_records(this._records) }, null, 2)
+      )}`,
+      filename
+    );
+  }
+
+  private _exportable_records = memoizeOne((records: ALDBRecord[] | undefined): ExportableRecord[] => {
+      if (!records) {
+        return [];
+      }
+
+    return records.map((rec) => ({
+        mem_addr: rec.mem_addr,
+        in_use: rec.in_use,
+        is_controller: rec.is_controller,
+        is_highwater: rec.highwater,
+        group: rec.group,
+        target: rec.target,
+        data1: rec.data1,
+        data2: rec.data2,
+        data3: rec.data3,
+      }));
+    });
+
   static get styles(): CSSResultGroup {
     return [
       haStyle,
@@ -518,11 +569,11 @@ class InsteonDeviceALDBPage extends LitElement {
         }
 
         :host([narrow]) {
-          --aldb-table-height: 86vh;
+          --aldb-table-height: 80vh;
         }
 
         :host(:not([narrow])) {
-          --aldb-table-height: 90vh;
+          --aldb-table-height: 80vh;
         }
 
         .header {

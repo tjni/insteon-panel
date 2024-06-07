@@ -7,6 +7,7 @@ import {
 import { PageNavigation } from "@ha/layouts/hass-tabs-subpage";
 import { HomeAssistant, Route } from "@ha/types";
 import { Insteon } from "./data/insteon";
+import { unknown } from "superstruct";
 
 export const insteonMainTabs: PageNavigation[] = [
   {
@@ -66,6 +67,14 @@ class InsteonRouter extends HassRouterPage {
       device_overrides: {
         tag: "device-overrides-panel",
         load: () => import("./config/device-overrides-panel")
+      },
+      broken_links: {
+        tag: "broken-links-panel",
+        load: () => import("./config/broken-links-panel")
+      },
+      unknown_devices: {
+        tag: "unknown-devices-panel",
+        load: () => import("./config/unknown-devices-panel")
       }
     },
   };

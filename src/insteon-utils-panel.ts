@@ -12,9 +12,13 @@ import "@ha/components/ha-svg-icon";
 import {
   fetchInsteonConfig,
   fetchModemConfigSchema,
+  fetchBrokenLinks,
+  fetchUnknownDevices,
   InsteonModemConfig,
   InsteonDeviceOverride,
   modemIsPlm,
+  BrokenLink,
+  UnknownDevice,
 } from "./data/config";
 import { showConfigModemDialog } from "./config/show-dialog-config-modem";
 import { showDeleteDeviceDialog } from "./config/show-dialog-delete-device";
@@ -35,9 +39,19 @@ export class InsteonUtilsPanel extends LitElement {
 
   @state() private _modem_config?: InsteonModemConfig;
 
-  @state() private _device_overrides?: InsteonDeviceOverride[];
+  @state() private _device_overrides: InsteonDeviceOverride[] = [];
 
   @state() private _modem_type_text?: string;
+
+  @state() private _broken_links: BrokenLink[] = [];
+
+  @state() private _unknown_devices: UnknownDevice[] = [];
+
+  @state() private _any_aldb_status_loading: boolean = false;
+
+  private _subscribed?: Promise<() => Promise<void>>;
+
+  private _refreshDevicesTimeoutHandle?: number;
 
   public async firstUpdated(changedProperties) {
     super.firstUpdated(changedProperties);
@@ -47,7 +61,7 @@ export class InsteonUtilsPanel extends LitElement {
     }
     fetchInsteonConfig(this.hass).then((config) => {
       this._modem_config = config.modem_config;
-      this._device_overrides = config.override_config;
+      this._device_overrides = config.override_config ? config.override_config : [];
       if (modemIsPlm(this._modem_config)) {
         this._modem_type_text = this.insteon.localize(
           "utils.config_modem.modem_type.plm",
@@ -64,6 +78,23 @@ export class InsteonUtilsPanel extends LitElement {
         }
       }
     });
+    this._subscribe();
+  }
+
+  public disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._unsubscribe();
+  }
+
+  private _broken_links_action(loading_status: boolean, broken_links_count: number) {
+
+    return loading_status
+    ? this.insteon.localize("utils.aldb_loading_short")
+    : broken_links_count
+        ? this.insteon.localize("utils.broken_links.caption") +
+          ": " +
+          broken_links_count
+        : undefined;
   }
 
   protected render(): TemplateResult | void {
@@ -71,11 +102,18 @@ export class InsteonUtilsPanel extends LitElement {
       return html``;
     }
 
-    const override_count = this._device_overrides?.length;
-    const override_action = override_count
+    const override_action = this._device_overrides.length
       ? this.insteon.localize("utils.config_device_overrides.title") +
         ": " +
-        override_count
+        this._device_overrides.length
+      : undefined;
+
+    const unknown_devices_action =  this._any_aldb_status_loading
+    ? this.insteon.localize("utils.aldb_loading_short")
+    : this._unknown_devices.length
+      ? this.insteon.localize("utils.unknown_devices.caption") +
+        ": " +
+        this._unknown_devices.length
       : undefined;
 
     return html`
@@ -112,7 +150,16 @@ export class InsteonUtilsPanel extends LitElement {
           <insteon-utils-card
             .hass=${this.hass}
             .title=${this.insteon.localize("device.actions.delete")}
-            @click=${this._showDeleteDeviceDialog}
+            .action_text=${unknown_devices_action}
+            .action_url=${"/insteon/unknown_devices"}
+          >
+            <ha-svg-icon slot="icon" .path=${mdiDevices}></ha-svg-icon>
+          </insteon-utils-card>
+          <insteon-utils-card
+            .hass=${this.hass}
+            .title=${this.insteon.localize("utils.broken_links.caption")}
+            .action_text=${this._broken_links_action(this._any_aldb_status_loading, this._broken_links.length)}
+            .action_url=${"/insteon/broken_links"}
           >
             <ha-svg-icon slot="icon" .path=${mdiDevices}></ha-svg-icon>
           </insteon-utils-card>
@@ -284,6 +331,46 @@ export class InsteonUtilsPanel extends LitElement {
         }
       `,
     ];
+  }
+
+  private _handleMessage(message: any): void {
+    if (message.type === "status") {
+      this._any_aldb_status_loading = message.is_loading;
+      if (!this._any_aldb_status_loading) {
+        fetchBrokenLinks(this.hass).then((broken_links) => {
+          this._broken_links = broken_links ? broken_links : []
+        });
+        fetchUnknownDevices(this.hass).then((unknown_devices) => {
+          this._unknown_devices = unknown_devices ? unknown_devices : []
+        });
+      }
+    }
+  }
+
+  private _unsubscribe(): void {
+    if (this._refreshDevicesTimeoutHandle) {
+      clearTimeout(this._refreshDevicesTimeoutHandle);
+    }
+    if (this._subscribed) {
+      this._subscribed.then((unsub) => unsub());
+      this._subscribed = undefined;
+    }
+  }
+
+  private _subscribe(): void {
+    if (!this.hass) {
+      return;
+    }
+    this._subscribed = this.hass.connection.subscribeMessage(
+      (message) => this._handleMessage(message),
+      {
+        type: "insteon/aldb/notify_all"
+      },
+    );
+    this._refreshDevicesTimeoutHandle = window.setTimeout(
+      () => this._unsubscribe(),
+      1200000,
+    );
   }
 }
 
