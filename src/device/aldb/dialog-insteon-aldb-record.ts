@@ -36,6 +36,8 @@ class DialogInsteonALDBRecord extends LitElement {
 
   @state() private _opened = false;
 
+  private _require_change = true;
+
   public async showDialog(params: InsteonALDBRecordDialogParams): Promise<void> {
     this.hass = params.hass;
     this.insteon = params.insteon;
@@ -47,6 +49,7 @@ class DialogInsteonALDBRecord extends LitElement {
     this._title = params.title;
     this._errors = {};
     this._opened = true;
+    this._require_change = params.require_change;
   }
 
   protected render(): TemplateResult {
@@ -88,7 +91,7 @@ class DialogInsteonALDBRecord extends LitElement {
   }
 
   private async _submit(): Promise<void> {
-    if (!this._changeMade()) {
+    if (!this._changeMade() && this._require_change) {
       this._close();
       return;
     }

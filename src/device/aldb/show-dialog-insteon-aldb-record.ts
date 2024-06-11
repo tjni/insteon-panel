@@ -11,6 +11,7 @@ export interface InsteonALDBRecordDialogParams {
   schema: HaFormSchema[];
   title: string;
   callback: (rec: ALDBRecord) => Promise<void>;
+  require_change: boolean;
 }
 
 export const loadInsteonALDBRecordDialog = () =>

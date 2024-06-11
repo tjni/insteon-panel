@@ -455,7 +455,7 @@ class InsteonDevicePropertiesPage extends LitElement {
         }
 
         :host([narrow]) {
-          --properties-table-height: 86vh;
+          --properties-table-height: 80vh;
         }
 
         :host(:not([narrow])) {

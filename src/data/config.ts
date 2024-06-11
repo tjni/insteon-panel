@@ -34,6 +34,32 @@ export interface InsteonDeviceOverride {
   firmware?: number | string;
 }
 
+export interface BrokenLink {
+  address: string;
+  device_name: string;
+  mem_addr: number;
+  in_use: boolean;
+  group: number;
+  is_controller: boolean
+  highwater: boolean;
+  target: string;
+  target_name: string;
+  data1: number;
+  data2: number;
+  data3: number;
+  status: [
+    "missing_controller",
+    "missing_responder",
+    "missing_target",
+    "found",
+    "target_db_not_loaded"
+  ]
+}
+
+export interface UnknownDevice {
+  address: string;
+}
+
 export type InsteonModemConfig =
   | InsteonPLMConfig
   | InsteonHubv1Config
@@ -95,6 +121,20 @@ export const removeDeviceOverride = (
     hass.callWS({
       type: "insteon/config/device_override/remove",
       device_address: device_address,
+});
+
+export const fetchBrokenLinks = (
+  hass: HomeAssistant
+): Promise<BrokenLink[]> =>
+    hass.callWS({
+      type: "insteon/config/get_broken_links"
+});
+
+export const fetchUnknownDevices = (
+  hass: HomeAssistant
+): Promise<string[]> =>
+    hass.callWS({
+      type: "insteon/config/get_unknown_devices"
 });
 
 
